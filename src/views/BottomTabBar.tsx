@@ -174,7 +174,7 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     return e => {
       // 某些Android15的机型上, 键盘消失不会触发keyboardDidHide, 而是会触发keyboardDidShow, 差异是height会小一点
       // 如果识别到本应该是keyboardDidHide的事件, 做一个拦截和补偿
-      const keyboardHeight = e?.endCoordinates?.height;
+      const keyboardHeight = e.endCoordinates.height;
       if (
         Platform.OS === "android" &&
         !this.isTriggeredKeyboardHide &&
