@@ -7,6 +7,7 @@ import {
   Keyboard,
   Platform,
   LayoutChangeEvent,
+  KeyboardEvent,
 } from 'react-native';
 import SafeAreaView from 'react-native-safe-area-view';
 import { ThemeColors, ThemeContext, NavigationRoute } from 'react-navigation';
@@ -113,7 +114,8 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     keyboard: false,
     visible: new Animated.Value(1),
   };
-  isTriggeredKeyboardHide = false;
+  isTriggeredKeyboardHide: boolean = false;
+  minKeyboardHeight: number;
 
   componentDidMount() {
     if (Platform.OS === 'ios') {
@@ -167,34 +169,30 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     return keyboardAnimationConfig as KeyboardAnimationConfig;
   };
 
-
-  isNotKeyboardDidShow = (() => {
-    let minKeyboardHeight = null;
-
-    return e => {
-      // 某些Android15的机型上, 键盘消失不会触发keyboardDidHide, 而是会触发keyboardDidShow, 差异是height会小一点
-      // 如果识别到本应该是keyboardDidHide的事件, 做一个拦截和补偿
-      const keyboardHeight = e.endCoordinates.height;
-      if (
-        Platform.OS === "android" &&
-        !this.isTriggeredKeyboardHide &&
-        keyboardHeight !== undefined
-      ) {
-        if (minKeyboardHeight === null) {
-          minKeyboardHeight = keyboardHeight;
-        } else if (keyboardHeight <= minKeyboardHeight) {
-          minKeyboardHeight = keyboardHeight;
-          return true;
-        }
+  isNotKeyboardDidShow = (e: KeyboardEvent)  => {
+    // 某些Android15的机型上, 键盘消失不会触发keyboardDidHide, 而是会触发keyboardDidShow, 差异是height会小一点
+    // 如果识别到本应该是keyboardDidHide的事件, 做一个拦截和补偿
+    const keyboardHeight = e && e.endCoordinates && e.endCoordinates.height;
+    if (
+      Platform.OS === "android" &&
+      !this.isTriggeredKeyboardHide &&
+      typeof keyboardHeight === "number" &&
+      !isNaN(keyboardHeight)
+    ) {
+      if (this.minKeyboardHeight === undefined) {
+        this.minKeyboardHeight = keyboardHeight;
+      } else if (keyboardHeight <= this.minKeyboardHeight) {
+        this.minKeyboardHeight = keyboardHeight;
+        return true;
       }
-
-      return false;
     }
-  })()
 
-  _handleKeyboardShow = (e) => {
+    return false;
+  }
+
+  _handleKeyboardShow = (e: KeyboardEvent) => {
     if (this.isNotKeyboardDidShow(e)) {
-      return this._handleKeyboardHide(e, true);
+      return this._handleKeyboardHideCompensate();
     }
 
     this.setState({ keyboard: true }, () => {
@@ -208,10 +206,7 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     });
   };
 
-  _handleKeyboardHide = (e, isCompensate) => {
-    if (!isCompensate) {
-      this.isTriggeredKeyboardHide = true;
-    }
+  _handleKeyboardHideCompensate = () => {
     const { animation, config } = this._getKeyboardAnimationConfigByType(
       'hide'
     );
@@ -221,6 +216,11 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     }).start(() => {
       this.setState({ keyboard: false });
     });
+  }
+
+  _handleKeyboardHide = () => {
+    this.isTriggeredKeyboardHide = true;
+    this._handleKeyboardHideCompensate();
   };
 
   _handleLayout = (e: LayoutChangeEvent) => {
