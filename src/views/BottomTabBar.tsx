@@ -115,7 +115,7 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
     visible: new Animated.Value(1),
   };
   isTriggeredKeyboardHide: boolean = false;
-  minKeyboardHeight: number;
+  minKeyboardHeight: number = NaN;
 
   componentDidMount() {
     if (Platform.OS === 'ios') {
@@ -179,7 +179,7 @@ class TabBarBottom extends React.Component<BottomTabBarProps, State> {
       typeof keyboardHeight === "number" &&
       !isNaN(keyboardHeight)
     ) {
-      if (this.minKeyboardHeight === undefined) {
+      if (isNaN(this.minKeyboardHeight)) {
         this.minKeyboardHeight = keyboardHeight;
       } else if (keyboardHeight <= this.minKeyboardHeight) {
         this.minKeyboardHeight = keyboardHeight;
